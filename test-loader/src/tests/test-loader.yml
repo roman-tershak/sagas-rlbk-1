@@ -1,0 +1,16 @@
+execution:
+  concurrency: 1
+  hold-for: 10s
+  ramp-up: 10s
+  scenario: create-order
+scenarios:
+  create-order:
+    variables:
+      userId: ${__javaScript( Math.floor(Math.random() * 10000) )}
+      cartNumber: ${__javaScript( Math.floor(Math.random() * 10000000000000000).toFixed(0) )}
+    requests:
+    - url: http://order-service:8080/orders
+      method: POST
+      headers:
+        Content-Type: application/json;charset=UTF-8
+      body: '{"userId":${__javaScript( Math.floor(Math.random() * 10000) )}, "cartNumber":"${__javaScript( Math.floor(Math.random() * 10000000000000000).toFixed(0) )}"}'

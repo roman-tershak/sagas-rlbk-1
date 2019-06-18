@@ -1,0 +1,1 @@
+docker run --rm -it --name cli --network docker_vnet-saga-w/rollbacks-1 rtershak/cli /bin/sh

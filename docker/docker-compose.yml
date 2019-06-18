@@ -1,0 +1,128 @@
+version: '2.4'
+
+networks:
+  vnet-saga-w/rollbacks-1:
+
+services:
+  mariadb-service:
+    image: mariadb:10.4
+    container_name: mariadb-service
+    # Network
+    hostname: mariadb-service
+    networks:
+      - vnet-saga-w/rollbacks-1
+    expose:
+      - 3306
+    # Environment
+    environment:
+      - MYSQL_ROOT_PASSWORD=htgrfedw
+      - MYSQL_DATABASE=sagarlbk1
+      - MYSQL_USER=sagau2
+      - MYSQL_PASSWORD=sagagrfedw
+    # Health check
+    healthcheck:
+      test: mysqladmin --connect_timeout=3 status -h localhost -u sagau2 -psagagrfedw
+      interval: 7s
+      retries: 10
+
+  activemq-service:
+    build:
+      context: activemq/
+      dockerfile: Dockerfile
+    image: saga-tests-rlbk-1/activemq:5.15.9
+    container_name: activemq-service
+    # Network
+    hostname: activemq-service
+    networks:
+      - vnet-saga-w/rollbacks-1
+    ports:
+      - 8161:8161
+    # Health check
+    healthcheck:
+      test: curl -u admin:admin -s http://localhost:8161/api/jolokia/exec/org.apache.activemq:type=Broker,brokerName=localhost,service=Health/healthStatus
+      interval: 7s
+      retries: 10
+
+  order-service:
+    image: saga-tests-rlbk-1/order-service:2.0-RLBK-EV-LOOP
+    container_name: order-service
+    depends_on:
+      mariadb-service:
+        condition: service_healthy
+      activemq-service:
+        condition: service_healthy
+    # Network
+    hostname: order-service
+    networks:
+      - vnet-saga-w/rollbacks-1
+    expose:
+      - 8080
+    # Environment
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb-service:3306/sagarlbk1
+      - SPRING_DATASOURCE_USERNAME=sagau2
+      - SPRING_DATASOURCE_PASSWORD=sagagrfedw
+      - SPRING_ACTIVEMQ_BROKER_URL=tcp://activemq-service:61616
+      - SPRING_JMS_REDELIVERY_POLICY_MAXIMUM_REDELIVERIES=300
+#      - logging.level.org.hibernate=WARN
+    # Health check
+    healthcheck:
+      test: wget -q -O - http://localhost:8080/status
+      interval: 15s
+      retries: 20
+
+  reservation-service:
+    image: saga-tests-rlbk-1/reservation-service:2.0-RLBK-EV-LOOP
+    container_name: reservation-service
+    depends_on:
+      mariadb-service:
+        condition: service_healthy
+      activemq-service:
+        condition: service_healthy
+    # Network
+    hostname: reservation-service
+    networks:
+      - vnet-saga-w/rollbacks-1
+    expose:
+      - 8080
+    # Environment
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb-service:3306/sagarlbk1
+      - SPRING_DATASOURCE_USERNAME=sagau2
+      - SPRING_DATASOURCE_PASSWORD=sagagrfedw
+      - SPRING_ACTIVEMQ_BROKER_URL=tcp://activemq-service:61616
+      - SPRING_JMS_REDELIVERY_POLICY_MAXIMUM_REDELIVERIES=300
+#      - logging.level.org.hibernate=WARN
+    # Health check
+    healthcheck:
+      test: wget -q -O - http://localhost:8080/status
+      interval: 15s
+      retries: 20
+
+  cart-service:
+    image: saga-tests-rlbk-1/cart-service:2.0-RLBK-EV-LOOP
+    container_name: cart-service
+    depends_on:
+      mariadb-service:
+        condition: service_healthy
+      activemq-service:
+        condition: service_healthy
+    # Network
+    hostname: cart-service
+    networks:
+      - vnet-saga-w/rollbacks-1
+    expose:
+      - 8080
+    # Environment
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb-service:3306/sagarlbk1
+      - SPRING_DATASOURCE_USERNAME=sagau2
+      - SPRING_DATASOURCE_PASSWORD=sagagrfedw
+      - SPRING_ACTIVEMQ_BROKER_URL=tcp://activemq-service:61616
+      - SPRING_JMS_REDELIVERY_POLICY_MAXIMUM_REDELIVERIES=300
+#      - logging.level.org.springframework=DEBUG
+    # Health check
+    healthcheck:
+      test: wget -q -O - http://localhost:8080/status
+      interval: 15s
+      retries: 20

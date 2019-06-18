@@ -1,0 +1,3 @@
+curl -X POST -H 'Content-Type:application/json;charset=UTF-8' -d '{"userId":17, "cartNumber":"1234567890123456"}' http://order-service:8080/orders
+
+curl -X GET http://order-service:8080/orders

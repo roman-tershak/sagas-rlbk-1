@@ -1,0 +1,1 @@
+docker build -t rtershak/activemq:5.15.9 .

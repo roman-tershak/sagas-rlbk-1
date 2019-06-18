@@ -1,0 +1,1 @@
+docker run -d --name activemq-service --network vnet-saga-w/rollbacks-1 rtershak/activemq:5.15.9
