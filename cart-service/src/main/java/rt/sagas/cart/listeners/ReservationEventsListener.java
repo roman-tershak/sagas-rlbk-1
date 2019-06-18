@@ -35,7 +35,7 @@ public class ReservationEventsListener {
 
             LOGGER.info("Reservation Created Event received: {}", reservationCreatedEvent);
 
-            transactionService.authorizeTransaction(
+            transactionService.authorizeCart(
                     reservationCreatedEvent.getReservationId(),
                     reservationCreatedEvent.getOrderId(),
                     reservationCreatedEvent.getUserId(),
