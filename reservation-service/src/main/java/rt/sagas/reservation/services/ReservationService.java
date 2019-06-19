@@ -4,10 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import rt.sagas.events.CartAuthorizedEvent;
-import rt.sagas.events.QueueNames;
-import rt.sagas.events.ReservationConfirmedEvent;
-import rt.sagas.events.ReservationCreatedEvent;
+import rt.sagas.events.*;
 import rt.sagas.events.services.EventService;
 import rt.sagas.reservation.entities.Reservation;
 import rt.sagas.reservation.entities.ReservationFactory;
@@ -20,6 +17,7 @@ import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
 import static rt.sagas.events.QueueNames.*;
 import static rt.sagas.reservation.entities.ReservationStatus.CONFIRMED;
 import static rt.sagas.reservation.entities.ReservationStatus.PENDING;
+import static rt.sagas.reservation.entities.ReservationStatus.REJECTED;
 
 @Service
 public class ReservationService {
@@ -41,14 +39,30 @@ public class ReservationService {
         if (!reservationsByOrderId.isPresent()) {
 
             Reservation reservation = reservationFactory.createNewPendingReservationFor(orderId, userId);
-            reservationRepository.save(reservation);
 
-            eventService.storeOutgoingEvent(
-                    RESERVATION_CREATED_EVENT_QUEUE,
-                    new ReservationCreatedEvent(
-                            reservation.getId(), reservation.getOrderId(), reservation.getUserId(), cartNumber));
+            if (orderId.toString().endsWith("1")) {
+                String reason = "Order Id ends with 1";
 
-            LOGGER.info("Reservation {} created", reservation);
+                reservation.setStatus(REJECTED);
+                reservation.setNotes(reason);
+                reservationRepository.save(reservation);
+
+                eventService.storeOutgoingEvent(
+                        RESERVATION_REJECTED_EVENT_QUEUE,
+                        new ReservationRejectedEvent(
+                                reservation.getId(), reservation.getOrderId(), reservation.getUserId(), reason));
+
+                LOGGER.info("Reservation {} rejected", reservation);
+            } else {
+                reservationRepository.save(reservation);
+
+                eventService.storeOutgoingEvent(
+                        RESERVATION_CREATED_EVENT_QUEUE,
+                        new ReservationCreatedEvent(
+                                reservation.getId(), reservation.getOrderId(), reservation.getUserId(), cartNumber));
+
+                LOGGER.info("Reservation {} created", reservation);
+            }
         } else {
             LOGGER.warn("Reservations for Order Id {} has already been created", orderId);
         }
