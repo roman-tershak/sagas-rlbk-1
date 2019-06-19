@@ -1,5 +1,5 @@
 package rt.sagas.reservation.entities;
 
 public enum ReservationStatus {
-    PENDING, CONFIRMED, REJECTED;
+    PENDING, CONFIRMED, DECLINED, CANCELLED;
 }

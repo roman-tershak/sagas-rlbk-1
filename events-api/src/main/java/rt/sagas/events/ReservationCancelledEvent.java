@@ -1,13 +1,13 @@
 package rt.sagas.events;
 
-public class ReservationRejectedEvent extends ReservationEvent {
+public class ReservationCancelledEvent extends ReservationEvent {
 
     private String reason;
 
-    public ReservationRejectedEvent() {
+    public ReservationCancelledEvent() {
     }
 
-    public ReservationRejectedEvent(String reservationId, Long orderId, Long userId, String reason) {
+    public ReservationCancelledEvent(String reservationId, Long orderId, Long userId, String reason) {
         super(reservationId, orderId, userId);
         this.reason = reason;
     }

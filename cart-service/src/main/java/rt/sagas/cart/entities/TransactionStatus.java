@@ -1,5 +1,5 @@
 package rt.sagas.cart.entities;
 
 public enum TransactionStatus {
-    AUTHORIZED, DECLINED;
+    AUTHORIZED, REJECTED;
 }

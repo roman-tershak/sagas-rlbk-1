@@ -15,9 +15,7 @@ import java.util.Optional;
 
 import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
 import static rt.sagas.events.QueueNames.*;
-import static rt.sagas.reservation.entities.ReservationStatus.CONFIRMED;
-import static rt.sagas.reservation.entities.ReservationStatus.PENDING;
-import static rt.sagas.reservation.entities.ReservationStatus.REJECTED;
+import static rt.sagas.reservation.entities.ReservationStatus.*;
 
 @Service
 public class ReservationService {
@@ -43,16 +41,16 @@ public class ReservationService {
             if (orderId.toString().endsWith("1")) {
                 String reason = "Order Id ends with 1";
 
-                reservation.setStatus(REJECTED);
+                reservation.setStatus(DECLINED);
                 reservation.setNotes(reason);
                 reservationRepository.save(reservation);
 
                 eventService.storeOutgoingEvent(
-                        RESERVATION_REJECTED_EVENT_QUEUE,
-                        new ReservationRejectedEvent(
+                        RESERVATION_CANCELLED_EVENT_QUEUE,
+                        new ReservationCancelledEvent(
                                 reservation.getId(), reservation.getOrderId(), reservation.getUserId(), reason));
 
-                LOGGER.info("Reservation {} rejected", reservation);
+                LOGGER.info("Reservation {} declined", reservation);
             } else {
                 reservationRepository.save(reservation);
 
@@ -71,16 +69,7 @@ public class ReservationService {
     @Transactional(REQUIRES_NEW)
     public void confirmReservation(String reservationId, Long orderId, Long userId) throws Exception {
 
-        Reservation reservation = reservationRepository.findById(reservationId).orElseGet(() -> {
-            LOGGER.warn("Reservation with id {} does not exist, looking for one with orderId {}",
-                    reservationId, orderId);
-
-            return reservationRepository.findByOrderId(orderId).orElseGet(() -> {
-                LOGGER.warn("Reservation for orderId {} does not exist, creating it", orderId);
-
-                return reservationFactory.createNewPendingReservationFor(orderId, userId);
-            });
-        });
+        Reservation reservation = getReservation(reservationId, orderId, userId);
 
         if (reservation.getStatus() == PENDING) {
 
@@ -96,5 +85,40 @@ public class ReservationService {
         } else {
             LOGGER.warn("Reservation: {} is not PENDING, skipping", reservation);
         }
+    }
+
+    @Transactional(REQUIRES_NEW)
+    public void cancelReservation(String reservationId, Long orderId, Long userId, String reason) throws Exception {
+
+        Reservation reservation = getReservation(reservationId, orderId, userId);
+
+        if (reservation.getStatus() == PENDING) {
+
+            reservation.setStatus(CANCELLED);
+            reservation.setNotes(reason);
+            reservationRepository.save(reservation);
+
+            eventService.storeOutgoingEvent(
+                    RESERVATION_CANCELLED_EVENT_QUEUE,
+                    new ReservationCancelledEvent(
+                            reservation.getId(), reservation.getOrderId(), reservation.getUserId(), reason));
+
+            LOGGER.info("Reservation {} cancelled", reservation);
+        } else {
+            LOGGER.error("Reservation: {} is not PENDING, cannot cancel it", reservation);
+        }
+    }
+
+    private Reservation getReservation(String reservationId, Long orderId, Long userId) {
+        return reservationRepository.findById(reservationId).orElseGet(() -> {
+                LOGGER.warn("Reservation with id {} does not exist, looking for one with orderId {}",
+                        reservationId, orderId);
+
+                return reservationRepository.findByOrderId(orderId).orElseGet(() -> {
+                    LOGGER.warn("Reservation for orderId {} does not exist, creating it", orderId);
+
+                    return reservationFactory.createNewPendingReservationFor(orderId, userId);
+                });
+            });
     }
 }

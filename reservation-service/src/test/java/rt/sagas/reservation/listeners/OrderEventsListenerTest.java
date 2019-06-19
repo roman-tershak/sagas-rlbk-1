@@ -8,10 +8,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import rt.sagas.events.OrderCreatedEvent;
 import rt.sagas.events.ReservationCreatedEvent;
-import rt.sagas.events.ReservationEvent;
-import rt.sagas.events.ReservationRejectedEvent;
+import rt.sagas.events.ReservationCancelledEvent;
 import rt.sagas.reservation.JmsReservationCreatedEventReceiver;
-import rt.sagas.reservation.JmsReservationRejectedEventReceiver;
+import rt.sagas.reservation.JmsReservationCancelledEventReceiver;
 import rt.sagas.reservation.entities.Reservation;
 import rt.sagas.reservation.entities.ReservationFactory;
 import rt.sagas.testutils.JmsSender;
@@ -22,7 +21,7 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
 import static rt.sagas.events.QueueNames.ORDER_CREATED_EVENT_QUEUE;
 import static rt.sagas.reservation.entities.ReservationStatus.PENDING;
-import static rt.sagas.reservation.entities.ReservationStatus.REJECTED;
+import static rt.sagas.reservation.entities.ReservationStatus.DECLINED;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -40,7 +39,7 @@ public class OrderEventsListenerTest extends AbstractListenerTest {
     @Autowired
     private JmsReservationCreatedEventReceiver reservationCreatedEventReceiver;
     @Autowired
-    private JmsReservationRejectedEventReceiver reservationRejectedEventReceiver;
+    private JmsReservationCancelledEventReceiver reservationCancelledEventReceiver;
 
     @After
     public void tearDown() {
@@ -92,9 +91,8 @@ public class OrderEventsListenerTest extends AbstractListenerTest {
         OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent(ORDER_ID, USER_ID, CART_NUMBER);
         jmsSender.send(ORDER_CREATED_EVENT_QUEUE, orderCreatedEvent);
 
-        ReservationCreatedEvent reservationCreatedEvent = reservationCreatedEventReceiver.pollEvent(
-                e -> e.getOrderId().equals(ORDER_ID), 10000L);
-        assertThat(reservationCreatedEvent, is(nullValue()));
+        assertThat(reservationCreatedEventReceiver.pollEvent(
+                e -> e.getOrderId().equals(ORDER_ID), 10000L), is(nullValue()));
 
         Optional<Reservation> byOrderId = reservationRepository.findByOrderId(ORDER_ID);
         assertThat(byOrderId.isPresent(), is(true));
@@ -106,27 +104,26 @@ public class OrderEventsListenerTest extends AbstractListenerTest {
     }
 
     @Test
-    public void testReservationGetsRejectedIfOrderIdEndsWithOne() throws Exception {
+    public void testReservationGetsDeclinedIfOrderIdEndsWithOne() throws Exception {
         OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent(ORDER_ID_ENDING_WITH_ONE, USER_ID, CART_NUMBER);
         jmsSender.send(ORDER_CREATED_EVENT_QUEUE, orderCreatedEvent);
 
         Reservation reservation = waitAndGetReservationsByOrderIdAndStatusFromDb(
-                ORDER_ID_ENDING_WITH_ONE, REJECTED, 10000L);
+                ORDER_ID_ENDING_WITH_ONE, DECLINED, 10000L);
         assertThat(reservation.getOrderId(), is(ORDER_ID_ENDING_WITH_ONE));
         assertThat(reservation.getUserId(), is(USER_ID));
-        assertThat(reservation.getStatus(), is(REJECTED));
+        assertThat(reservation.getStatus(), is(DECLINED));
         assertThat(reservation.getNotes(), is("Order Id ends with 1"));
 
-        ReservationRejectedEvent reservationRejectedEvent = reservationRejectedEventReceiver.pollEvent(
+        ReservationCancelledEvent reservationCancelledEvent = reservationCancelledEventReceiver.pollEvent(
                 e -> e.getOrderId().equals(reservation.getOrderId()),10000L);
-        assertThat(reservationRejectedEvent, is(notNullValue()));
-        assertThat(reservationRejectedEvent.getReservationId(), is(reservation.getId()));
-        assertThat(reservationRejectedEvent.getOrderId(), is(ORDER_ID_ENDING_WITH_ONE));
-        assertThat(reservationRejectedEvent.getUserId(), is(USER_ID));
-        assertThat(reservationRejectedEvent.getReason(), is("Order Id ends with 1"));
+        assertThat(reservationCancelledEvent, is(notNullValue()));
+        assertThat(reservationCancelledEvent.getReservationId(), is(reservation.getId()));
+        assertThat(reservationCancelledEvent.getOrderId(), is(ORDER_ID_ENDING_WITH_ONE));
+        assertThat(reservationCancelledEvent.getUserId(), is(USER_ID));
+        assertThat(reservationCancelledEvent.getReason(), is("Order Id ends with 1"));
 
-        ReservationCreatedEvent reservationCreatedEvent = reservationCreatedEventReceiver.pollEvent(
-                e -> e.getOrderId().equals(ORDER_ID_ENDING_WITH_ONE), 10000L);
-        assertThat(reservationCreatedEvent, is(nullValue()));
+        assertThat(reservationCreatedEventReceiver.pollEvent(
+                e -> e.getOrderId().equals(ORDER_ID_ENDING_WITH_ONE), 10000L), is(nullValue()));
     }
 }

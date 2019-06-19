@@ -8,12 +8,14 @@ import org.springframework.jms.annotation.JmsListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 import rt.sagas.events.CartAuthorizedEvent;
+import rt.sagas.events.CartRejectedEvent;
 import rt.sagas.reservation.services.ReservationService;
 
 import javax.jms.TextMessage;
 import javax.transaction.Transactional;
 
 import static rt.sagas.events.QueueNames.CART_AUTHORIZED_EVENT_QUEUE;
+import static rt.sagas.events.QueueNames.CART_REJECTED_EVENT_QUEUE;
 
 @Component
 public class CartEvensListener {
@@ -27,7 +29,7 @@ public class CartEvensListener {
 
     @Transactional
     @JmsListener(destination = CART_AUTHORIZED_EVENT_QUEUE)
-    public void receiveMessage(@Payload TextMessage textMessage) throws Exception {
+    public void receiveCartAuthorizedMessage(@Payload TextMessage textMessage) throws Exception {
         try {
             CartAuthorizedEvent cartAuthorizedEvent = objectMapper.readValue(
                     textMessage.getText(), CartAuthorizedEvent.class);
@@ -42,6 +44,28 @@ public class CartEvensListener {
             LOGGER.info("About to complete Cart Authorized Event handling: {}", cartAuthorizedEvent);
         } catch (Exception e) {
             LOGGER.error("An exception occurred in Cart Authorized Event handling: {}, {}", textMessage, e);
+            throw e;
+        }
+    }
+
+    @Transactional
+    @JmsListener(destination = CART_REJECTED_EVENT_QUEUE)
+    public void receiveCartRejectedMessage(@Payload TextMessage textMessage) throws Exception {
+        try {
+            CartRejectedEvent cartRejectedEvent = objectMapper.readValue(
+                    textMessage.getText(), CartRejectedEvent.class);
+
+            LOGGER.info("Cart Rejected Event received: {}", cartRejectedEvent);
+
+            reservationService.cancelReservation(
+                    cartRejectedEvent.getReservationId(),
+                    cartRejectedEvent.getOrderId(),
+                    cartRejectedEvent.getUserId(),
+                    cartRejectedEvent.getReason());
+
+            LOGGER.info("About to complete Cart Rejected Event handling: {}", cartRejectedEvent);
+        } catch (Exception e) {
+            LOGGER.error("An exception occurred in Cart Rejected Event handling: {}, {}", textMessage, e);
             throw e;
         }
     }

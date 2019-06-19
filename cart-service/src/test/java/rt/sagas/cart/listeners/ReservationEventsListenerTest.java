@@ -9,7 +9,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import rt.sagas.cart.entities.Transaction;
 import rt.sagas.cart.repositories.TransactionRepository;
 import rt.sagas.events.CartAuthorizedEvent;
-import rt.sagas.events.CartDeclinedEvent;
+import rt.sagas.events.CartRejectedEvent;
 import rt.sagas.events.ReservationCreatedEvent;
 import rt.sagas.testutils.JmsSender;
 
@@ -21,7 +21,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static rt.sagas.cart.entities.TransactionStatus.AUTHORIZED;
-import static rt.sagas.cart.entities.TransactionStatus.DECLINED;
+import static rt.sagas.cart.entities.TransactionStatus.REJECTED;
 import static rt.sagas.events.QueueNames.RESERVATION_CREATED_EVENT_QUEUE;
 
 @RunWith(SpringRunner.class)
@@ -38,7 +38,7 @@ public class ReservationEventsListenerTest {
     @Autowired
     private JmsCartAuthorizedEventReceiver cartAuthorizedEventReceiver;
     @Autowired
-    private JmsCartDeclinedEventReceiver cartDeclinedEventReceiver;
+    private JmsCartRejectedEventReceiver cartRejectedEventReceiver;
     @Autowired
     private JmsSender jmsSender;
 
@@ -93,7 +93,7 @@ public class ReservationEventsListenerTest {
     }
 
     @Test
-    public void testTransactionIsDeclinedAndCartDeclinedEventIsSentWhenCartNumberEndsWithSomeBadNumbers() throws Exception {
+    public void testTransactionIsRejectedAndCartRejectedEventIsSentWhenCartNumberEndsWithSomeBadNumbers() throws Exception {
         int i = 0;
         for (String bd : Arrays.asList("1", "7", "9")) {
             String badCartNumber = CART_NUMBER.substring(0, CART_NUMBER.length() - 1) + bd;
@@ -105,25 +105,25 @@ public class ReservationEventsListenerTest {
 
             jmsSender.send(RESERVATION_CREATED_EVENT_QUEUE, reservationCreatedEvent);
 
-            CartAuthorizedEvent cartAuthorizedEvent = cartAuthorizedEventReceiver.pollEvent(
+            CartAuthorizedEvent noCartAuthorizedEvent = cartAuthorizedEventReceiver.pollEvent(
                     e -> e.getReservationId().equals(reservationId), 10000L);
-            assertThat(cartAuthorizedEvent, is(nullValue()));
+            assertThat(noCartAuthorizedEvent, is(nullValue()));
 
-            CartDeclinedEvent cartDeclinedEvent = cartDeclinedEventReceiver.pollEvent(
+            CartRejectedEvent cartRejectedEvent = cartRejectedEventReceiver.pollEvent(
                     e -> e.getReservationId().equals(reservationId), 10000L);
-            assertThat(cartDeclinedEvent, is(notNullValue()));
-            assertThat(cartDeclinedEvent.getReservationId(), is(reservationId));
-            assertThat(cartDeclinedEvent.getOrderId(), is(orderId));
-            assertThat(cartDeclinedEvent.getUserId(), is(USER_ID));
-            assertThat(cartDeclinedEvent.getCartNumber(), is(badCartNumber));
-            assertThat(cartDeclinedEvent.getReason(), is("Cart number ends with " + bd));
+            assertThat(cartRejectedEvent, is(notNullValue()));
+            assertThat(cartRejectedEvent.getReservationId(), is(reservationId));
+            assertThat(cartRejectedEvent.getOrderId(), is(orderId));
+            assertThat(cartRejectedEvent.getUserId(), is(USER_ID));
+            assertThat(cartRejectedEvent.getCartNumber(), is(badCartNumber));
+            assertThat(cartRejectedEvent.getReason(), is("Cart number ends with " + bd));
 
             Transaction transaction = waitAndGetTransactionByOrderIdFromDb(orderId, 5000L);
             assertThat(transaction, is(notNullValue()));
             assertThat(transaction.getOrderId(), is(orderId));
             assertThat(transaction.getUserId(), is(USER_ID));
             assertThat(transaction.getCartNumber(), is(badCartNumber));
-            assertThat(transaction.getStatus(), is(DECLINED));
+            assertThat(transaction.getStatus(), is(REJECTED));
             assertThat(transaction.getReason(), is("Cart number ends with " + bd));
         }
     }

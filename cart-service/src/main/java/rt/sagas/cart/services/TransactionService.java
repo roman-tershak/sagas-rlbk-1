@@ -5,11 +5,9 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import rt.sagas.cart.entities.Transaction;
-import rt.sagas.cart.entities.TransactionStatus;
 import rt.sagas.cart.repositories.TransactionRepository;
 import rt.sagas.events.CartAuthorizedEvent;
-import rt.sagas.events.CartDeclinedEvent;
-import rt.sagas.events.QueueNames;
+import rt.sagas.events.CartRejectedEvent;
 import rt.sagas.events.services.EventService;
 
 import javax.transaction.Transactional;
@@ -17,9 +15,9 @@ import java.util.Optional;
 
 import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
 import static rt.sagas.cart.entities.TransactionStatus.AUTHORIZED;
-import static rt.sagas.cart.entities.TransactionStatus.DECLINED;
+import static rt.sagas.cart.entities.TransactionStatus.REJECTED;
 import static rt.sagas.events.QueueNames.CART_AUTHORIZED_EVENT_QUEUE;
-import static rt.sagas.events.QueueNames.CART_DECLINED_EVENT_QUEUE;
+import static rt.sagas.events.QueueNames.CART_REJECTED_EVENT_QUEUE;
 
 @Service
 public class TransactionService {
@@ -42,7 +40,7 @@ public class TransactionService {
 
             if (cartSuffix.equals("1") || cartSuffix.equals("7") || cartSuffix.equals("9")) {
 
-                declineTransaction(reservationId, orderId, userId, cartNumber,
+                rejectTransaction(reservationId, orderId, userId, cartNumber,
                         "Cart number ends with " + cartSuffix);
             } else {
                 authorizeTransaction(reservationId, orderId, userId, cartNumber);
@@ -65,17 +63,17 @@ public class TransactionService {
         LOGGER.info("Transaction {} authorized", transaction);
     }
 
-    private void declineTransaction(String reservationId, Long orderId, Long userId, String cartNumber, String reason)
+    private void rejectTransaction(String reservationId, Long orderId, Long userId, String cartNumber, String reason)
             throws Exception {
 
-        Transaction transaction = new Transaction(cartNumber, orderId, userId, DECLINED, reason);
+        Transaction transaction = new Transaction(cartNumber, orderId, userId, REJECTED, reason);
         transactionRepository.save(transaction);
 
         eventService.storeOutgoingEvent(
-                CART_DECLINED_EVENT_QUEUE,
-                new CartDeclinedEvent(reservationId, cartNumber, orderId, userId, reason));
+                CART_REJECTED_EVENT_QUEUE,
+                new CartRejectedEvent(reservationId, cartNumber, orderId, userId, reason));
 
-        LOGGER.info("Transaction {} declined", transaction);
+        LOGGER.info("Transaction {} rejected", transaction);
     }
 
 }
