@@ -21,4 +21,5 @@ select o.*, r.notes, r.order_id, r.status, r.user_id, t.* from orders o left out
 select o.*, r.notes, r.order_id, r.status, r.user_id, t.* from orders o left outer join reservations r on o.id = r.order_id left outer join transactions t on o.id = t.order_id where o.status = 'FAILED' and r.status = 'CANCELLED';
 
 select o.status, r.notes, r.status, t.reason, t.status, count(*) from orders o left outer join reservations r on o.id = r.order_id left outer join transactions t on o.id = t.order_id group by o.status, r.notes, r.status, t.reason, t.status;
+select o.status, r.status, t.status, count(*) from orders o left outer join reservations r on o.id = r.order_id left outer join transactions t on o.id = t.order_id group by o.status, r.status, t.status;
 select o.status, r.notes, r.status, t.reason, t.status, count(*) from orders o left outer join reservations r on o.id = r.order_id left outer join transactions t on o.id = t.order_id where o.status = 'FAILED' group by o.status, r.notes, r.status, t.reason, t.status;
