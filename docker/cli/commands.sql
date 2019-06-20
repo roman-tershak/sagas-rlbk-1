@@ -15,3 +15,10 @@ select o.*, r.*, t.* from orders o left outer join reservations r on o.id = r.or
 select count(*) from orders o inner join reservations r on o.id = r.order_id inner join transactions t on o.id = t.order_id;
 select count(*) from (select o.id from orders o inner join reservations r on o.id = r.order_id inner join transactions t on o.id = t.order_id group by o.id) as rs;
 select o.id, count(*) from orders o inner join reservations r on o.id = r.order_id inner join transactions t on o.id = t.order_id group by o.id having count(*) > 1;
+
+select o.*, r.notes, r.order_id, r.status, r.user_id, t.* from orders o left outer join reservations r on o.id = r.order_id left outer join transactions t on o.id = t.order_id where o.status = 'FAILED';
+select o.*, r.notes, r.order_id, r.status, r.user_id, t.* from orders o left outer join reservations r on o.id = r.order_id left outer join transactions t on o.id = t.order_id where o.status = 'FAILED' and r.status = 'DECLINED';
+select o.*, r.notes, r.order_id, r.status, r.user_id, t.* from orders o left outer join reservations r on o.id = r.order_id left outer join transactions t on o.id = t.order_id where o.status = 'FAILED' and r.status = 'CANCELLED';
+
+select o.status, r.notes, r.status, t.reason, t.status, count(*) from orders o left outer join reservations r on o.id = r.order_id left outer join transactions t on o.id = t.order_id group by o.status, r.notes, r.status, t.reason, t.status;
+select o.status, r.notes, r.status, t.reason, t.status, count(*) from orders o left outer join reservations r on o.id = r.order_id left outer join transactions t on o.id = t.order_id where o.status = 'FAILED' group by o.status, r.notes, r.status, t.reason, t.status;
