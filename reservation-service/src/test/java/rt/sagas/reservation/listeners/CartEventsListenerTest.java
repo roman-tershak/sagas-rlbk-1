@@ -78,6 +78,9 @@ public class CartEventsListenerTest extends AbstractListenerTest {
         assertThat(reservationConfirmedEvent.getReservationId(), is(pendingReservation.getId()));
         assertThat(reservationConfirmedEvent.getOrderId(), is(ORDER_ID));
         assertThat(reservationConfirmedEvent.getUserId(), is(USER_ID));
+
+        assertThat(reservationCancelledEventReceiver.pollEvent(
+                e -> e.getReservationId().equals(reservationId), 5000L), is(nullValue()));
     }
 
     @Test
@@ -101,6 +104,9 @@ public class CartEventsListenerTest extends AbstractListenerTest {
                 e -> e.getReservationId().equals(reservationId)), is(notNullValue()));
         assertThat(reservationConfirmedEventReceiver.pollEvent(
                 e -> e.getReservationId().equals(reservationId)), is(nullValue()));
+
+        assertThat(reservationCancelledEventReceiver.pollEvent(
+                e -> e.getReservationId().equals(reservationId), 5000L), is(nullValue()));
     }
 
     @Test

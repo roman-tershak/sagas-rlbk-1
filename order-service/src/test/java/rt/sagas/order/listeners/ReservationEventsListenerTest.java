@@ -7,6 +7,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import rt.sagas.events.ReservationCancelledEvent;
 import rt.sagas.events.ReservationConfirmedEvent;
 import rt.sagas.order.OrderRepositorySpy;
 import rt.sagas.order.AbstractOrderTest;
@@ -18,7 +19,9 @@ import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
+import static rt.sagas.events.QueueNames.RESERVATION_CANCELLED_EVENT_QUEUE;
 import static rt.sagas.events.QueueNames.RESERVATION_CONFIRMED_EVENT_QUEUE;
+import static rt.sagas.order.entities.OrderStatus.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -50,7 +53,7 @@ public class ReservationEventsListenerTest extends AbstractOrderTest {
     }
 
     @Test
-    public void testOrderBecomesCompletedOnReservationFinalizedEvent() throws Exception {
+    public void testOrderBecomesCompletedOnReservationConfirmedEvent() throws Exception {
         ReservationConfirmedEvent reservationConfirmedEvent = new ReservationConfirmedEvent(
                 RESERVATION_ID, orderId, USER_ID);
 
@@ -58,13 +61,13 @@ public class ReservationEventsListenerTest extends AbstractOrderTest {
 
         Order order = waitTillCompletedAndGetOrderFromDb(5000L);
         assertThat(order, is(notNullValue()));
-        assertThat(order.getStatus(), is(OrderStatus.COMPLETE));
+        assertThat(order.getStatus(), is(COMPLETE));
         assertThat(order.getUserId(), is(USER_ID));
         assertThat(order.getReservationId(), is(RESERVATION_ID));
     }
 
     @Test
-    public void testOrderBecomesCompletedOnReservationFinalizedEventSentTwice() throws Exception {
+    public void testOrderBecomesCompletedOnReservationConfirmedEventSentTwice() throws Exception {
         ReservationConfirmedEvent reservationConfirmedEvent = new ReservationConfirmedEvent(
                 RESERVATION_ID, orderId, USER_ID);
 
@@ -78,7 +81,7 @@ public class ReservationEventsListenerTest extends AbstractOrderTest {
     }
 
     @Test
-    public void testOrderDoesNotBecomeCompleteWhenExceptionIsThrownOnReservationFinalizedEvent() throws Exception {
+    public void testOrderDoesNotBecomeCompleteWhenExceptionIsThrownOnReservationConfirmedEvent() throws Exception {
         orderRepositorySpy.setThrowExceptionInSave(true);
 
         ReservationConfirmedEvent reservationConfirmedEvent = new ReservationConfirmedEvent(
@@ -88,12 +91,30 @@ public class ReservationEventsListenerTest extends AbstractOrderTest {
 
         Order order = waitTillCompletedAndGetOrderFromDb(5000L);
         assertThat(order, is(notNullValue()));
-        assertThat(order.getStatus(), is(OrderStatus.NEW));
+        assertThat(order.getStatus(), is(NEW));
         assertThat(order.getUserId(), is(USER_ID));
         assertThat(order.getReservationId(), is(nullValue()));
     }
 
+    @Test
+    public void testOrderBecomesFailedOnReservationCancelledEvent() throws Exception {
+        ReservationCancelledEvent reservationCancelledEvent = new ReservationCancelledEvent(
+                RESERVATION_ID, orderId, USER_ID, "Bad reason");
+
+        jmsSender.send(RESERVATION_CANCELLED_EVENT_QUEUE, reservationCancelledEvent);
+
+        Order order = waitTillStatusAndGetOrderFromDb(FAILED, 5000L);
+        assertThat(order, is(notNullValue()));
+        assertThat(order.getStatus(), is(FAILED));
+        assertThat(order.getUserId(), is(USER_ID));
+        assertThat(order.getReservationId(), is(RESERVATION_ID));
+    }
+
     private Order waitTillCompletedAndGetOrderFromDb(long waitTimeout) throws InterruptedException {
+        return waitTillStatusAndGetOrderFromDb(COMPLETE, waitTimeout);
+    }
+
+    private Order waitTillStatusAndGetOrderFromDb(OrderStatus expectedStatus, long waitTimeout) throws InterruptedException {
         long stop = System.currentTimeMillis() + waitTimeout;
         Order order = null;
         do {
@@ -102,7 +123,7 @@ public class ReservationEventsListenerTest extends AbstractOrderTest {
 
                 order = optionalOrder.get();
 
-                if (order.getStatus() == OrderStatus.COMPLETE) {
+                if (order.getStatus() == expectedStatus) {
                     break;
                 }
             }

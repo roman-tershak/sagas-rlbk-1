@@ -8,6 +8,7 @@ import rt.sagas.events.OrderCreatedEvent;
 import rt.sagas.events.QueueNames;
 import rt.sagas.events.services.EventService;
 import rt.sagas.order.entities.Order;
+import rt.sagas.order.entities.OrderStatus;
 import rt.sagas.order.repositories.OrderRepository;
 
 import javax.transaction.Transactional;
@@ -16,6 +17,7 @@ import java.util.Optional;
 import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
 import static rt.sagas.events.QueueNames.ORDER_CREATED_EVENT_QUEUE;
 import static rt.sagas.order.entities.OrderStatus.COMPLETE;
+import static rt.sagas.order.entities.OrderStatus.FAILED;
 import static rt.sagas.order.entities.OrderStatus.NEW;
 
 @Service
@@ -43,14 +45,14 @@ public class OrderService {
     }
 
     @Transactional(REQUIRES_NEW)
-    public void completeOrder(String reservationId, Long orderId) {
+    public void completeOrder(String reservationId, Long orderId, OrderStatus orderStatus) {
         Optional<Order> optionalOrder = orderRepository.findById(orderId);
         if (optionalOrder.isPresent()) {
             Order order = optionalOrder.get();
 
             if (order.getStatus() == NEW) {
                 order.setReservationId(reservationId);
-                order.setStatus(COMPLETE);
+                order.setStatus(orderStatus);
                 orderRepository.save(order);
             } else {
                 LOGGER.warn("Order with id {} and reservationId {} has already been completed",
