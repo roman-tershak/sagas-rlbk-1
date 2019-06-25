@@ -104,7 +104,7 @@ public class OrderEventsListenerTest extends AbstractListenerTest {
     }
 
     @Test
-    public void testReservationGetsDeclinedIfOrderIdEndsWithOne() throws Exception {
+    public void testReservationGetsDeclinedIfReservationNumberDuplicates() throws Exception {
         OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent(ORDER_ID_ENDING_WITH_ONE, USER_ID, CART_NUMBER);
         jmsSender.send(ORDER_CREATED_EVENT_QUEUE, orderCreatedEvent);
 

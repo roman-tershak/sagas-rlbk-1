@@ -7,6 +7,8 @@ public class Reservation {
 
     @Id
     private String id;
+    @Column(unique = true, length = 3)
+    private Integer reservationNumber;
     @Column(unique = true)
     private Long orderId;
     private Long userId;
@@ -24,16 +26,20 @@ public class Reservation {
         this.status = status;
     }
 
-    public Reservation(String id, Long orderId, Long userId, ReservationStatus status, String notes) {
+    public Reservation(String id, Integer reservationNumber, Long orderId, Long userId, ReservationStatus status) {
         this.id = id;
+        this.reservationNumber = reservationNumber;
         this.orderId = orderId;
         this.userId = userId;
         this.status = status;
-        this.notes = notes;
     }
 
     public String getId() {
         return id;
+    }
+
+    public Integer getReservationNumber() {
+        return reservationNumber;
     }
 
     public Long getOrderId() {
@@ -64,8 +70,9 @@ public class Reservation {
     public String toString() {
         final StringBuilder sb = new StringBuilder("Reservation{");
         sb.append("id='").append(id).append('\'');
-        sb.append(", userId=").append(userId);
+        sb.append(", reservationNumber=").append(reservationNumber);
         sb.append(", orderId=").append(orderId);
+        sb.append(", userId=").append(userId);
         sb.append(", status=").append(status);
         sb.append(", notes=").append(notes);
         sb.append('}');
