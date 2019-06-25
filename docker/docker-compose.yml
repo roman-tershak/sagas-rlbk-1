@@ -45,14 +45,14 @@ services:
 
   order-service:
     image: saga-tests-rlbk-1/order-service:2.0-RLBK-EV-LOOP
-    container_name: order-service
+#    container_name: order-service
     depends_on:
       mariadb-service:
         condition: service_healthy
       activemq-service:
         condition: service_healthy
     # Network
-    hostname: order-service
+#    hostname: order-service
     networks:
       - vnet-saga-w/rollbacks-1
     expose:
@@ -73,14 +73,14 @@ services:
 
   reservation-service:
     image: saga-tests-rlbk-1/reservation-service:2.0-RLBK-EV-LOOP
-    container_name: reservation-service
+#    container_name: reservation-service
     depends_on:
       mariadb-service:
         condition: service_healthy
       activemq-service:
         condition: service_healthy
     # Network
-    hostname: reservation-service
+#    hostname: reservation-service
     networks:
       - vnet-saga-w/rollbacks-1
     expose:
@@ -101,14 +101,14 @@ services:
 
   cart-service:
     image: saga-tests-rlbk-1/cart-service:2.0-RLBK-EV-LOOP
-    container_name: cart-service
+#    container_name: cart-service
     depends_on:
       mariadb-service:
         condition: service_healthy
       activemq-service:
         condition: service_healthy
     # Network
-    hostname: cart-service
+#    hostname: cart-service
     networks:
       - vnet-saga-w/rollbacks-1
     expose:
