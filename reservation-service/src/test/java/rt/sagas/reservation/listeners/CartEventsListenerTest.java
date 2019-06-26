@@ -18,12 +18,11 @@ import rt.sagas.reservation.entities.ReservationFactory;
 import rt.sagas.testutils.JmsSender;
 
 import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.Matchers.isEmptyString;
 import static org.junit.Assert.assertThat;
 import static rt.sagas.events.QueueNames.CART_AUTHORIZED_EVENT_QUEUE;
 import static rt.sagas.events.QueueNames.CART_REJECTED_EVENT_QUEUE;
-import static rt.sagas.reservation.entities.ReservationStatus.CANCELLED;
-import static rt.sagas.reservation.entities.ReservationStatus.CONFIRMED;
-import static rt.sagas.reservation.entities.ReservationStatus.PENDING;
+import static rt.sagas.reservation.entities.ReservationStatus.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -71,6 +70,9 @@ public class CartEventsListenerTest extends AbstractListenerTest {
         assertThat(reservation, is(notNullValue()));
         assertThat(reservation.getOrderId(), is(ORDER_ID));
         assertThat(reservation.getUserId(), is(USER_ID));
+        assertThat(reservation.getStatus(), is(CONFIRMED));
+        assertThat(reservation.getReservationNumber(), is(nullValue()));
+        assertThat(reservation.getNotes(), is(isEmptyString()));
 
         ReservationConfirmedEvent reservationConfirmedEvent = reservationConfirmedEventReceiver.pollEvent(
                 e -> e.getReservationId().equals(reservationId));
@@ -129,6 +131,9 @@ public class CartEventsListenerTest extends AbstractListenerTest {
         assertThat(reservation, is(notNullValue()));
         assertThat(reservation.getOrderId(), is(ORDER_ID));
         assertThat(reservation.getUserId(), is(USER_ID));
+        assertThat(reservation.getStatus(), is(PENDING));
+        assertThat(reservation.getReservationNumber(), is(pendingReservation.getReservationNumber()));
+        assertThat(reservation.getNotes(), is(isEmptyString()));
     }
 
     @Test
@@ -147,6 +152,7 @@ public class CartEventsListenerTest extends AbstractListenerTest {
         assertThat(reservation.getOrderId(), is(ORDER_ID));
         assertThat(reservation.getUserId(), is(USER_ID));
         assertThat(reservation.getStatus(), is(CANCELLED));
+        assertThat(reservation.getReservationNumber(), is(nullValue()));
         assertThat(reservation.getNotes(), is("Bad cart number"));
 
         ReservationCancelledEvent reservationCancelledEvent = reservationCancelledEventReceiver.pollEvent(

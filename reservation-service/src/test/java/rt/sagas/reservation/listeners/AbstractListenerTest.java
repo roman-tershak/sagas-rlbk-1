@@ -17,6 +17,21 @@ public class AbstractListenerTest {
         reservationRepository.deleteAll();
     }
 
+    protected Reservation waitAndGetReservationsByOrderIdFromDb(
+            Long orderId, long waitTimeout) throws Exception {
+
+        long stop = System.currentTimeMillis() + waitTimeout;
+        do {
+            Optional<Reservation> byOrderId = reservationRepository.findByOrderId(orderId);
+            if (byOrderId.isPresent()) {
+                return byOrderId.get();
+            }
+            Thread.sleep(100L);
+        } while (System.currentTimeMillis() < stop);
+
+        return null;
+    }
+
     protected Reservation waitAndGetReservationsByOrderIdAndStatusFromDb(
             Long orderId, ReservationStatus status, long waitTimeout) throws Exception {
 

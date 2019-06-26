@@ -4,14 +4,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import rt.sagas.events.*;
+import rt.sagas.events.ReservationCancelledEvent;
+import rt.sagas.events.ReservationConfirmedEvent;
+import rt.sagas.events.ReservationCreatedEvent;
 import rt.sagas.events.services.EventService;
 import rt.sagas.reservation.entities.Reservation;
 import rt.sagas.reservation.entities.ReservationFactory;
 import rt.sagas.reservation.repositories.ReservationRepository;
 
 import javax.transaction.Transactional;
-import java.util.Optional;
 
 import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
 import static rt.sagas.events.QueueNames.*;
@@ -30,40 +31,22 @@ public class ReservationService {
     private EventService eventService;
 
     @Transactional(REQUIRES_NEW)
-    public void createReservation(Long orderId, Long userId, String cartNumber)
-            throws Exception {
+    public void createReservation(Long orderId, Long userId, String cartNumber) throws Exception {
 
-        Optional<Reservation> reservationsByOrderId = reservationRepository.findByOrderId(orderId);
-        if (!reservationsByOrderId.isPresent()) {
-
-            Reservation reservation = reservationFactory.createNewPendingReservationFor(orderId, userId);
-
-            if (orderId.toString().endsWith("1")) {
-                String reason = "Order Id ends with 1";
-
-                reservation.setStatus(DECLINED);
-                reservation.setNotes(reason);
-                reservationRepository.save(reservation);
-
-                eventService.storeOutgoingEvent(
-                        RESERVATION_CANCELLED_EVENT_QUEUE,
-                        new ReservationCancelledEvent(
-                                reservation.getId(), reservation.getOrderId(), reservation.getUserId(), reason));
-
-                LOGGER.info("Reservation {} declined", reservation);
-            } else {
-                reservationRepository.save(reservation);
-
-                eventService.storeOutgoingEvent(
-                        RESERVATION_CREATED_EVENT_QUEUE,
-                        new ReservationCreatedEvent(
-                                reservation.getId(), reservation.getOrderId(), reservation.getUserId(), cartNumber));
-
-                LOGGER.info("Reservation {} created", reservation);
-            }
-        } else {
+        if (reservationRepository.findByOrderId(orderId).isPresent()) {
             LOGGER.warn("Reservations for Order Id {} has already been created", orderId);
+            return;
         }
+
+        Reservation reservation = reservationFactory.createNewPendingReservationFor(orderId, userId);
+        reservationRepository.save(reservation);
+
+        eventService.storeOutgoingEvent(
+                RESERVATION_CREATED_EVENT_QUEUE,
+                new ReservationCreatedEvent(
+                        reservation.getId(), reservation.getOrderId(), reservation.getUserId(), cartNumber));
+
+        LOGGER.info("About to create Reservation {}", reservation);
     }
 
     @Transactional(REQUIRES_NEW)
@@ -74,6 +57,7 @@ public class ReservationService {
         if (reservation.getStatus() == PENDING) {
 
             reservation.setStatus(CONFIRMED);
+            reservation.setReservationNumber(null);
             reservationRepository.save(reservation);
 
             eventService.storeOutgoingEvent(
@@ -95,6 +79,7 @@ public class ReservationService {
         if (reservation.getStatus() == PENDING) {
 
             reservation.setStatus(CANCELLED);
+            reservation.setReservationNumber(null);
             reservation.setNotes(reason);
             reservationRepository.save(reservation);
 

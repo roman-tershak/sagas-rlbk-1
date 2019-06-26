@@ -19,13 +19,6 @@ public class Reservation {
     public Reservation() {
     }
 
-    public Reservation(String id, Long orderId, Long userId, ReservationStatus status) {
-        this.id = id;
-        this.orderId = orderId;
-        this.userId = userId;
-        this.status = status;
-    }
-
     public Reservation(String id, Integer reservationNumber, Long orderId, Long userId, ReservationStatus status) {
         this.id = id;
         this.reservationNumber = reservationNumber;
@@ -40,6 +33,10 @@ public class Reservation {
 
     public Integer getReservationNumber() {
         return reservationNumber;
+    }
+
+    public void setReservationNumber(Integer reservationNumber) {
+        this.reservationNumber = reservationNumber;
     }
 
     public Long getOrderId() {
