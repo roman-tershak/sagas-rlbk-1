@@ -18,7 +18,7 @@ public class ReservationCancelledEvent extends ReservationEvent {
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("ReservationCreatedEvent{");
+        final StringBuilder sb = new StringBuilder("ReservationCancelledEvent{");
         sb.append("reason='").append(reason).append('\'');
         sb.append(", ").append(super.toString());
         sb.append('}');

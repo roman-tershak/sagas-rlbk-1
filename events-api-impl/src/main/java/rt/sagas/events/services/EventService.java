@@ -1,5 +1,6 @@
 package rt.sagas.events.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,11 +32,18 @@ public class EventService {
     private EventSender eventSender;
 
     @Transactional(REQUIRED)
-    public void storeOutgoingEvent(String destination, SagaEvent event) throws Exception {
+    public void storeOutgoingEvent(String destination, SagaEvent event) {
+
+        String eventAsString;
+        try {
+            eventAsString = objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
 
         eventRepository.save(
                 new EventEntity(
-                        destination, objectMapper.writeValueAsString(event)));
+                        destination, eventAsString));
 
         LOGGER.info("Stored outgoing Event {} for {}", event, destination);
     }

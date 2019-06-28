@@ -1,22 +1,36 @@
 package rt.sagas.reservation.entities;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotNull;
 
 @Entity(name = "RESERVATIONS")
 public class Reservation {
 
     @Id
     private String id;
+
     @Column(unique = true, length = 3)
     private Integer reservationNumber;
+
     @Column(unique = true)
     private Long orderId;
+
     private Long userId;
+
+    @NotNull
     @Enumerated(EnumType.STRING)
     private ReservationStatus status;
-    private String notes = "";
+
+    private String notes;
 
     public Reservation() {
+    }
+
+    public Reservation(String id, Long orderId, Long userId, ReservationStatus status) {
+        this.id = id;
+        this.orderId = orderId;
+        this.userId = userId;
+        this.status = status;
     }
 
     public Reservation(String id, Integer reservationNumber, Long orderId, Long userId, ReservationStatus status) {

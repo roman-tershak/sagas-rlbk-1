@@ -64,6 +64,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=sagagrfedw
       - SPRING_ACTIVEMQ_BROKER_URL=tcp://activemq-service:61616
       - SPRING_JMS_REDELIVERY_POLICY_MAXIMUM_REDELIVERIES=300
+      - logging.level.root=INFO
 #      - logging.level.org.hibernate=WARN
     # Health check
     healthcheck:
@@ -92,6 +93,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=sagagrfedw
       - SPRING_ACTIVEMQ_BROKER_URL=tcp://activemq-service:61616
       - SPRING_JMS_REDELIVERY_POLICY_MAXIMUM_REDELIVERIES=300
+      - logging.level.root=INFO
 #      - logging.level.org.hibernate=WARN
     # Health check
     healthcheck:
@@ -120,6 +122,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=sagagrfedw
       - SPRING_ACTIVEMQ_BROKER_URL=tcp://activemq-service:61616
       - SPRING_JMS_REDELIVERY_POLICY_MAXIMUM_REDELIVERIES=300
+      - logging.level.root=INFO
 #      - logging.level.org.springframework=DEBUG
     # Health check
     healthcheck:

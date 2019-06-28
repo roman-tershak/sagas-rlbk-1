@@ -18,7 +18,6 @@ import rt.sagas.reservation.entities.ReservationFactory;
 import rt.sagas.testutils.JmsSender;
 
 import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.Matchers.isEmptyString;
 import static org.junit.Assert.assertThat;
 import static rt.sagas.events.QueueNames.CART_AUTHORIZED_EVENT_QUEUE;
 import static rt.sagas.events.QueueNames.CART_REJECTED_EVENT_QUEUE;
@@ -55,10 +54,16 @@ public class CartEventsListenerTest extends AbstractListenerTest {
         reservationConfirmedEventReceiver.clear();
     }
 
+    private Reservation createTestPendingReservationInDb() {
+        Reservation pendingReservation = reservationFactory.createNewReservationFor(ORDER_ID, USER_ID);
+        pendingReservation.setStatus(PENDING);
+        reservationRepository.save(pendingReservation);
+        return pendingReservation;
+    }
+
     @Test
     public void testReservationIsCompletedAndReservationCompletedEventIsSentWhenCartApprovedEventIsReceived() throws Exception {
-        Reservation pendingReservation = reservationFactory.createNewPendingReservationFor(ORDER_ID, USER_ID);
-        reservationRepository.save(pendingReservation);
+        Reservation pendingReservation = createTestPendingReservationInDb();
         String reservationId = pendingReservation.getId();
 
         CartAuthorizedEvent cartAuthorizedEvent = new CartAuthorizedEvent(
@@ -66,13 +71,13 @@ public class CartEventsListenerTest extends AbstractListenerTest {
         jmsSender.send(CART_AUTHORIZED_EVENT_QUEUE, cartAuthorizedEvent);
 
         Reservation reservation = waitAndGetReservationsByIdAndStatusFromDb(
-                reservationId, CONFIRMED, 5000L);
+                reservationId, CONFIRMED, 10000L);
         assertThat(reservation, is(notNullValue()));
         assertThat(reservation.getOrderId(), is(ORDER_ID));
         assertThat(reservation.getUserId(), is(USER_ID));
         assertThat(reservation.getStatus(), is(CONFIRMED));
         assertThat(reservation.getReservationNumber(), is(nullValue()));
-        assertThat(reservation.getNotes(), is(isEmptyString()));
+        assertThat(reservation.getNotes(), is(nullValue()));
 
         ReservationConfirmedEvent reservationConfirmedEvent = reservationConfirmedEventReceiver.pollEvent(
                 e -> e.getReservationId().equals(reservationId));
@@ -87,8 +92,7 @@ public class CartEventsListenerTest extends AbstractListenerTest {
 
     @Test
     public void testReservationCompletedEventIsNotSentTwiceWhenCartApprovedEventAreDoubled() throws Exception {
-        Reservation pendingReservation = reservationFactory.createNewPendingReservationFor(ORDER_ID, USER_ID);
-        reservationRepository.save(pendingReservation);
+        Reservation pendingReservation = createTestPendingReservationInDb();
         String reservationId = pendingReservation.getId();
 
         CartAuthorizedEvent cartAuthorizedEvent = new CartAuthorizedEvent(
@@ -113,8 +117,7 @@ public class CartEventsListenerTest extends AbstractListenerTest {
 
     @Test
     public void testReservationConfirmedEventIsNotSentWhenExceptionOccurs() throws Exception {
-        Reservation pendingReservation = reservationFactory.createNewPendingReservationFor(ORDER_ID, USER_ID);
-        reservationRepository.save(pendingReservation);
+        Reservation pendingReservation = createTestPendingReservationInDb();
         String reservationId = pendingReservation.getId();
 
         reservationRepositorySpy.setThrowExceptionInSave(true);
@@ -133,13 +136,12 @@ public class CartEventsListenerTest extends AbstractListenerTest {
         assertThat(reservation.getUserId(), is(USER_ID));
         assertThat(reservation.getStatus(), is(PENDING));
         assertThat(reservation.getReservationNumber(), is(pendingReservation.getReservationNumber()));
-        assertThat(reservation.getNotes(), is(isEmptyString()));
+        assertThat(reservation.getNotes(), is(nullValue()));
     }
 
     @Test
     public void testReservationIsCancelledAndReservationCancelledEventIsSentWhenCartRejectedEventIsReceived() throws Exception {
-        Reservation pendingReservation = reservationFactory.createNewPendingReservationFor(ORDER_ID, USER_ID);
-        reservationRepository.save(pendingReservation);
+        Reservation pendingReservation = createTestPendingReservationInDb();
         String reservationId = pendingReservation.getId();
 
         CartRejectedEvent cartRejectedEvent = new CartRejectedEvent(
@@ -169,8 +171,7 @@ public class CartEventsListenerTest extends AbstractListenerTest {
 
     @Test
     public void testReservationCancelledEventIsNotSentTwiceWhenCartRejectedEventAreDoubled() throws Exception {
-        Reservation pendingReservation = reservationFactory.createNewPendingReservationFor(ORDER_ID, USER_ID);
-        reservationRepository.save(pendingReservation);
+        Reservation pendingReservation = createTestPendingReservationInDb();
         String reservationId = pendingReservation.getId();
 
         CartRejectedEvent cartRejectedEvent = new CartRejectedEvent(
@@ -190,7 +191,7 @@ public class CartEventsListenerTest extends AbstractListenerTest {
                 e -> e.getReservationId().equals(reservationId)), is(nullValue()));
 
         assertThat(reservationConfirmedEventReceiver.pollEvent(
-                e -> e.getReservationId().equals(reservationId), 5000L), is(nullValue()));
+                e -> e.getReservationId().equals(reservationId)), is(nullValue()));
     }
 
 }

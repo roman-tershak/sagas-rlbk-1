@@ -3,6 +3,7 @@ package rt.sagas.reservation.services;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.NonTransientDataAccessException;
 import org.springframework.stereotype.Service;
 import rt.sagas.events.ReservationCancelledEvent;
 import rt.sagas.events.ReservationConfirmedEvent;
@@ -10,9 +11,11 @@ import rt.sagas.events.ReservationCreatedEvent;
 import rt.sagas.events.services.EventService;
 import rt.sagas.reservation.entities.Reservation;
 import rt.sagas.reservation.entities.ReservationFactory;
+import rt.sagas.reservation.exceptions.ReservationException;
 import rt.sagas.reservation.repositories.ReservationRepository;
 
 import javax.transaction.Transactional;
+import java.util.Optional;
 
 import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
 import static rt.sagas.events.QueueNames.*;
@@ -31,22 +34,75 @@ public class ReservationService {
     private EventService eventService;
 
     @Transactional(REQUIRES_NEW)
-    public void createReservation(Long orderId, Long userId, String cartNumber) throws Exception {
+    public String getReservation(Long orderId, Long userId) {
 
-        if (reservationRepository.findByOrderId(orderId).isPresent()) {
+        Reservation reservation;
+        Optional<Reservation> possiblyReservation = reservationRepository.findByOrderId(orderId);
+        if (possiblyReservation.isPresent()) {
             LOGGER.warn("Reservations for Order Id {} has already been created", orderId);
+
+            reservation = possiblyReservation.get();
+        } else {
+            reservation = reservationFactory.createNewReservationFor(orderId, userId);
+
+            LOGGER.info("About to create Reservation {}", reservation);
+            reservation = reservationRepository.save(reservation);
+        }
+        return reservation.getId();
+    }
+
+    @Transactional(value = REQUIRES_NEW, rollbackOn = {ReservationException.class})
+    public void makeReservation(String reservationId, String cartNumber) throws ReservationException {
+
+        Optional<Reservation> shouldBeReservation = reservationRepository.findById(reservationId);
+        if (!shouldBeReservation.isPresent()) {
+            throw new ReservationException("Reservation with id " + reservationId + " does not exist");
+        }
+        Reservation reservation = shouldBeReservation.get();
+
+        if (reservation.getStatus() != NEW) {
+            LOGGER.warn("Reservation status is not NEW {}, skipping", reservation);
             return;
         }
 
-        Reservation reservation = reservationFactory.createNewPendingReservationFor(orderId, userId);
+        try {
+            Integer reservationNumber = reservationFactory.getReservationNumber();
+            reservation.setReservationNumber(reservationNumber);
+            reservation.setStatus(PENDING);
+            reservationRepository.saveAndFlush(reservation);
+
+            LOGGER.info("Made reservation for {} ", reservation);
+
+            eventService.storeOutgoingEvent(
+                    RESERVATION_CREATED_EVENT_QUEUE,
+                    new ReservationCreatedEvent(
+                            reservation.getId(), reservation.getOrderId(), reservation.getUserId(), cartNumber));
+
+        } catch (NonTransientDataAccessException e) {
+            throw new ReservationException(e.getMessage());
+        }
+    }
+
+    @Transactional(REQUIRES_NEW)
+    public void handleReservationError(ReservationException re, Long orderId, Long userId) {
+        Optional<Reservation> byOrderId = reservationRepository.findByOrderId(orderId);
+        if (!byOrderId.isPresent()) {
+            LOGGER.error("Reservations for Order Id {} does not exist", orderId);
+            return;
+        }
+
+        String errorString = re.getMessage().substring(0, 100);
+
+        Reservation reservation = byOrderId.get();
+        reservation.setStatus(DECLINED);
+        reservation.setNotes(errorString);
         reservationRepository.save(reservation);
+        LOGGER.warn("Declined Reservation {}", reservation);
 
         eventService.storeOutgoingEvent(
-                RESERVATION_CREATED_EVENT_QUEUE,
-                new ReservationCreatedEvent(
-                        reservation.getId(), reservation.getOrderId(), reservation.getUserId(), cartNumber));
-
-        LOGGER.info("About to create Reservation {}", reservation);
+                RESERVATION_CANCELLED_EVENT_QUEUE,
+                new ReservationCancelledEvent(null, orderId, userId,
+                        errorString));
     }
 
     @Transactional(REQUIRES_NEW)
