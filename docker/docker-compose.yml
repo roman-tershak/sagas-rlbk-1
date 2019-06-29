@@ -64,11 +64,12 @@ services:
       - SPRING_DATASOURCE_PASSWORD=sagagrfedw
       - SPRING_ACTIVEMQ_BROKER_URL=tcp://activemq-service:61616
       - SPRING_JMS_REDELIVERY_POLICY_MAXIMUM_REDELIVERIES=300
+      - logging.level.root=INFO
 #      - logging.level.org.hibernate=WARN
     # Health check
     healthcheck:
       test: wget -q -O - http://localhost:8080/status
-      interval: 15s
+      interval: 5s
       retries: 20
 
   reservation-service:
@@ -92,11 +93,12 @@ services:
       - SPRING_DATASOURCE_PASSWORD=sagagrfedw
       - SPRING_ACTIVEMQ_BROKER_URL=tcp://activemq-service:61616
       - SPRING_JMS_REDELIVERY_POLICY_MAXIMUM_REDELIVERIES=300
+      - logging.level.root=INFO
 #      - logging.level.org.hibernate=WARN
     # Health check
     healthcheck:
       test: wget -q -O - http://localhost:8080/status
-      interval: 15s
+      interval: 5s
       retries: 20
 
   cart-service:
@@ -120,9 +122,10 @@ services:
       - SPRING_DATASOURCE_PASSWORD=sagagrfedw
       - SPRING_ACTIVEMQ_BROKER_URL=tcp://activemq-service:61616
       - SPRING_JMS_REDELIVERY_POLICY_MAXIMUM_REDELIVERIES=300
+      - logging.level.root=INFO
 #      - logging.level.org.springframework=DEBUG
     # Health check
     healthcheck:
       test: wget -q -O - http://localhost:8080/status
-      interval: 15s
+      interval: 5s
       retries: 20
