@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.NonTransientDataAccessException;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
@@ -12,6 +11,7 @@ import rt.sagas.events.OrderCreatedEvent;
 import rt.sagas.events.ReservationCancelledEvent;
 import rt.sagas.events.ReservationCreatedEvent;
 import rt.sagas.events.services.EventSender;
+import rt.sagas.reservation.exceptions.ReservationException;
 import rt.sagas.reservation.services.ReservationService;
 
 import javax.jms.TextMessage;
@@ -53,7 +53,7 @@ public class OrderEventsListener {
 
             LOGGER.info("About to complete Order Created Event handling: {}", orderCreatedEvent);
 
-        } catch (NonTransientDataAccessException e) {
+        } catch (ReservationException e) {
             LOGGER.warn("An exception occurred: {}", e.getMessage());
 
             eventSender.sendEvent(

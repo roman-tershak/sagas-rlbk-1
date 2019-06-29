@@ -3,6 +3,7 @@ package rt.sagas.reservation.services;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import rt.sagas.reservation.entities.Reservation;
 import rt.sagas.reservation.exceptions.ReservationException;
@@ -24,22 +25,26 @@ public class ReservationService {
     @Autowired
     private ReservationRepository reservationRepository;
 
-    @Transactional(REQUIRES_NEW)
-    public String createReservation(Long orderId, Long userId) {
+    @Transactional(value = REQUIRES_NEW, rollbackOn = ReservationException.class)
+    public String createReservation(Long orderId, Long userId) throws ReservationException {
 
-        Optional<Reservation> optionalReservation = reservationRepository.findByOrderId(orderId);
-        if (optionalReservation.isPresent()) {
-            LOGGER.warn("Reservations for Order Id {} has already been created", orderId);
+        try {
+            Optional<Reservation> optionalReservation = reservationRepository.findByOrderId(orderId);
+            if (optionalReservation.isPresent()) {
+                LOGGER.warn("Reservations for Order Id {} has already been created", orderId);
 
-            return optionalReservation.get().getId();
+                return optionalReservation.get().getId();
 
-        } else {
-            Reservation reservation = reservationRepository.saveAndFlush(
-                    reservationFactory.createNewPendingReservationFor(orderId, userId));
+            } else {
+                Reservation reservation = reservationRepository.saveAndFlush(
+                        reservationFactory.createNewPendingReservationFor(orderId, userId));
 
-            LOGGER.info("Reservation created: {}", reservation);
+                LOGGER.info("Reservation created: {}", reservation);
 
-            return reservation.getId();
+                return reservation.getId();
+            }
+        } catch (DataIntegrityViolationException e) {
+            throw new ReservationException(e);
         }
     }
 

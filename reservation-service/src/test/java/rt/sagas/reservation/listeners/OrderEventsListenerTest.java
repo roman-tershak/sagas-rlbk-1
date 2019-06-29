@@ -88,8 +88,6 @@ public class OrderEventsListenerTest extends AbstractListenerTest {
         OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent(ORDER_ID, USER_ID, CART_NUMBER);
         jmsSender.send(ORDER_CREATED_EVENT_QUEUE, orderCreatedEvent);
 
-        assertThat(waitAndGetReservationsByOrderIdFromDb(ORDER_ID,10000L), is(nullValue()));
-
         ReservationCancelledEvent reservationCancelledEvent = reservationCancelledEventReceiver.pollEvent(
                 e -> e.getOrderId().equals(ORDER_ID),10000L);
         assertThat(reservationCancelledEvent, is(notNullValue()));
@@ -98,7 +96,9 @@ public class OrderEventsListenerTest extends AbstractListenerTest {
         assertThat(reservationCancelledEvent.getUserId(), is(USER_ID));
         assertThat(reservationCancelledEvent.getReason(), is(notNullValue()));
 
+        assertThat(waitAndGetReservationsByOrderIdFromDb(ORDER_ID,0), is(nullValue()));
+
         assertThat(reservationCreatedEventReceiver.pollEvent(
-                e -> e.getOrderId().equals(ORDER_ID), 10000L), is(nullValue()));
+                e -> e.getOrderId().equals(ORDER_ID)), is(nullValue()));
     }
 }
