@@ -1,13 +1,15 @@
-package rt.sagas.reservation.entities;
+package rt.sagas.reservation.services;
 
 import org.springframework.stereotype.Component;
+import rt.sagas.reservation.entities.Reservation;
+import rt.sagas.reservation.entities.ReservationStatus;
 
 import java.util.UUID;
 
 @Component
 public class ReservationFactory {
 
-    public static Integer MAX_RESERVATION_NUMBER = 199;
+    public static Integer MAX_RESERVATION_NUMBER = 19;
 
     public Reservation createNewPendingReservationFor(Long orderId, Long userId) {
         UUID uuid = UUID.randomUUID();

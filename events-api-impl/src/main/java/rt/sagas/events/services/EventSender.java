@@ -1,14 +1,17 @@
 package rt.sagas.events.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Component;
+import rt.sagas.events.SagaEvent;
 
 import javax.transaction.Transactional;
 
-import static javax.transaction.Transactional.TxType.REQUIRES_NEW;
+import static javax.transaction.Transactional.TxType.REQUIRED;
 
 @Component
 public class EventSender {
@@ -17,14 +20,21 @@ public class EventSender {
 
     @Autowired
     private JmsTemplate jmsTemplate;
+    @Autowired
+    private ObjectMapper objectMapper;
 
-    @Transactional(REQUIRES_NEW)
-    public void sendEvent(String destination, String event) {
+    @Transactional(REQUIRED)
+    public void sendEvent(String destination, SagaEvent event) {
+        try {
+            String eventString = objectMapper.writeValueAsString(event);
 
-        jmsTemplate.send(destination, session -> {
-            return session.createTextMessage(event);
-        });
+            jmsTemplate.send(destination, session -> {
+                return session.createTextMessage(eventString);
+            });
 
-        LOGGER.info("Event {} sent to {}", event, destination);
+            LOGGER.info("Event {} sent to {}", event, destination);
+        } catch (JsonProcessingException e) {
+            LOGGER.error("Unexpected non-retriable error occurred: ", e);
+        }
     }
 }

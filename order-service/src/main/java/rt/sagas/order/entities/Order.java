@@ -3,7 +3,7 @@ package rt.sagas.order.entities;
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 
 import static rt.sagas.order.entities.OrderStatus.NEW;
 
@@ -33,7 +33,7 @@ public class Order {
     }
 
     @NotNull(message = "userId is mandatory")
-    @Positive(message = "userId must be positive")
+    @PositiveOrZero(message = "userId must be not negative")
     public Long getUserId() {
         return userId;
     }

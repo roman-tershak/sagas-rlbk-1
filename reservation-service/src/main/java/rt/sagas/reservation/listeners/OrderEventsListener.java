@@ -10,14 +10,14 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 import rt.sagas.events.OrderCreatedEvent;
 import rt.sagas.events.ReservationCancelledEvent;
-import rt.sagas.events.services.EventService;
+import rt.sagas.events.ReservationCreatedEvent;
+import rt.sagas.events.services.EventSender;
 import rt.sagas.reservation.services.ReservationService;
 
 import javax.jms.TextMessage;
 import javax.transaction.Transactional;
 
-import static rt.sagas.events.QueueNames.ORDER_CREATED_EVENT_QUEUE;
-import static rt.sagas.events.QueueNames.RESERVATION_CANCELLED_EVENT_QUEUE;
+import static rt.sagas.events.QueueNames.*;
 
 @Component
 public class OrderEventsListener {
@@ -27,7 +27,7 @@ public class OrderEventsListener {
     @Autowired
     private ReservationService reservationService;
     @Autowired
-    private EventService eventService;
+    private EventSender eventSender;
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -35,28 +35,31 @@ public class OrderEventsListener {
     @JmsListener(destination = ORDER_CREATED_EVENT_QUEUE)
     public void receiveMessage(@Payload TextMessage textMessage) throws Exception {
 
-        OrderCreatedEvent orderCreatedEvent = objectMapper.readValue(textMessage.getText(), OrderCreatedEvent.class);
+        OrderCreatedEvent orderCreatedEvent = objectMapper.readValue(textMessage.getText(),
+                OrderCreatedEvent.class);
         LOGGER.info("Order Created Event received: {}", orderCreatedEvent);
 
         Long orderId = orderCreatedEvent.getOrderId();
         Long userId = orderCreatedEvent.getUserId();
+        String cartNumber = orderCreatedEvent.getCartNumber();
 
         try {
-            reservationService.createReservation(
-                    orderId, userId, orderCreatedEvent.getCartNumber());
+            String reservationId = reservationService.createReservation(orderId, userId);
+
+            eventSender.sendEvent(
+                    RESERVATION_CREATED_EVENT_QUEUE,
+                    new ReservationCreatedEvent(
+                            reservationId, orderId, userId, cartNumber));
 
             LOGGER.info("About to complete Order Created Event handling: {}", orderCreatedEvent);
 
         } catch (NonTransientDataAccessException e) {
             LOGGER.warn("An exception occurred: {}", e.getMessage());
 
-            eventService.storeOutgoingEvent(
+            eventSender.sendEvent(
                     RESERVATION_CANCELLED_EVENT_QUEUE,
                     new ReservationCancelledEvent(null, orderId, userId,
                             e.getMessage().substring(0, 100)));
-        } catch (Exception e) {
-            LOGGER.error("An exception occurred in Order Created Event handling: {}, {}", textMessage, e);
-            throw e;
         }
     }
 }

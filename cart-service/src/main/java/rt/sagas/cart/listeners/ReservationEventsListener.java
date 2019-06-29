@@ -9,7 +9,9 @@ import org.springframework.jms.annotation.JmsListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 import rt.sagas.cart.services.TransactionService;
+import rt.sagas.events.CartEvent;
 import rt.sagas.events.ReservationCreatedEvent;
+import rt.sagas.events.services.EventSender;
 
 import javax.jms.TextMessage;
 import javax.transaction.Transactional;
@@ -25,26 +27,27 @@ public class ReservationEventsListener {
     private TransactionService transactionService;
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private EventSender eventSender;
 
     @Transactional
     @JmsListener(destination = RESERVATION_CREATED_EVENT_QUEUE)
     public void receiveMessage(@Payload TextMessage textMessage) throws Exception {
-        try {
-            ReservationCreatedEvent reservationCreatedEvent = objectMapper.readValue(
-                    textMessage.getText(), ReservationCreatedEvent.class);
 
-            LOGGER.info("Reservation Created Event received: {}", reservationCreatedEvent);
+        ReservationCreatedEvent reservationCreatedEvent = objectMapper.readValue(
+                textMessage.getText(), ReservationCreatedEvent.class);
+        LOGGER.info("Reservation Created Event received: {}", reservationCreatedEvent);
 
-            transactionService.authorizeCart(
-                    reservationCreatedEvent.getReservationId(),
-                    reservationCreatedEvent.getOrderId(),
-                    reservationCreatedEvent.getUserId(),
-                    reservationCreatedEvent.getCartNumber());
+        CartEvent cartEvent = transactionService.authorizeCart(
+                reservationCreatedEvent.getReservationId(),
+                reservationCreatedEvent.getOrderId(),
+                reservationCreatedEvent.getUserId(),
+                reservationCreatedEvent.getCartNumber());
 
-            LOGGER.info("About to complete Reservation Created Event handling: {}", reservationCreatedEvent);
-        } catch (Exception e) {
-            LOGGER.error("An exception occurred in Reservation Created Event handling: {}, {}", textMessage, e);
-            throw e;
-        }
+        eventSender.sendEvent(
+                transactionService.getQueueName(cartEvent),
+                cartEvent);
+
+        LOGGER.info("About to complete Reservation Created Event handling: {}", reservationCreatedEvent);
     }
 }

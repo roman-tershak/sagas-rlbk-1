@@ -8,4 +8,4 @@ docker run --name reservation-service ^
     -e SPRING_JMS_REDELIVERY_POLICY_MAXIMUM_REDELIVERIES=300 ^
     -e JAVA_TOOL_OPTIONS=\"-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n\" ^
     -p 8000:8000 ^
-    saga-tests-rlbk-1/reservation-service:2.0-RLBK-EV-LOOP
+    saga-tests-rlbk-1/reservation-service:3.0-RLBK-NSTR-SEQEV

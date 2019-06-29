@@ -9,13 +9,16 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 import rt.sagas.events.CartAuthorizedEvent;
 import rt.sagas.events.CartRejectedEvent;
+import rt.sagas.events.ReservationCancelledEvent;
+import rt.sagas.events.ReservationConfirmedEvent;
+import rt.sagas.events.services.EventSender;
+import rt.sagas.reservation.exceptions.ReservationException;
 import rt.sagas.reservation.services.ReservationService;
 
 import javax.jms.TextMessage;
 import javax.transaction.Transactional;
 
-import static rt.sagas.events.QueueNames.CART_AUTHORIZED_EVENT_QUEUE;
-import static rt.sagas.events.QueueNames.CART_REJECTED_EVENT_QUEUE;
+import static rt.sagas.events.QueueNames.*;
 
 @Component
 public class CartEvensListener {
@@ -26,6 +29,8 @@ public class CartEvensListener {
     private ReservationService reservationService;
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private EventSender eventSender;
 
     @Transactional
     @JmsListener(destination = CART_AUTHORIZED_EVENT_QUEUE)
@@ -36,15 +41,20 @@ public class CartEvensListener {
 
             LOGGER.info("Cart Authorized Event received: {}", cartAuthorizedEvent);
 
-            reservationService.confirmReservation(
-                    cartAuthorizedEvent.getReservationId(),
-                    cartAuthorizedEvent.getOrderId(),
-                    cartAuthorizedEvent.getUserId());
+            String reservationId = cartAuthorizedEvent.getReservationId();
+            Long orderId = cartAuthorizedEvent.getOrderId();
+            Long userId = cartAuthorizedEvent.getUserId();
+
+            reservationService.confirmReservation(reservationId);
+
+            eventSender.sendEvent(
+                    RESERVATION_CONFIRMED_EVENT_QUEUE,
+                    new ReservationConfirmedEvent(
+                            reservationId, orderId, userId));
 
             LOGGER.info("About to complete Cart Authorized Event handling: {}", cartAuthorizedEvent);
-        } catch (Exception e) {
-            LOGGER.error("An exception occurred in Cart Authorized Event handling: {}, {}", textMessage, e);
-            throw e;
+        } catch (ReservationException e) {
+            LOGGER.error("An error occurred in Cart Authorized Event handling: {}, {}", textMessage, e);
         }
     }
 
@@ -57,16 +67,21 @@ public class CartEvensListener {
 
             LOGGER.info("Cart Rejected Event received: {}", cartRejectedEvent);
 
-            reservationService.cancelReservation(
-                    cartRejectedEvent.getReservationId(),
-                    cartRejectedEvent.getOrderId(),
-                    cartRejectedEvent.getUserId(),
-                    cartRejectedEvent.getReason());
+            String reservationId = cartRejectedEvent.getReservationId();
+            Long orderId = cartRejectedEvent.getOrderId();
+            Long userId = cartRejectedEvent.getUserId();
+            String reason = cartRejectedEvent.getReason();
+
+            reservationService.cancelReservation(reservationId, reason);
+
+            eventSender.sendEvent(
+                    RESERVATION_CANCELLED_EVENT_QUEUE,
+                    new ReservationCancelledEvent(
+                            reservationId, orderId, userId, reason));
 
             LOGGER.info("About to complete Cart Rejected Event handling: {}", cartRejectedEvent);
-        } catch (Exception e) {
-            LOGGER.error("An exception occurred in Cart Rejected Event handling: {}, {}", textMessage, e);
-            throw e;
+        } catch (ReservationException e) {
+            LOGGER.error("An error occurred in Cart Rejected Event handling: {}, {}", textMessage, e);
         }
     }
 }

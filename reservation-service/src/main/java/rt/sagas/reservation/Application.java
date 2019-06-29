@@ -5,16 +5,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jms.annotation.EnableJms;
-import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @ComponentScan(basePackages = "rt.sagas")
 @EnableJpaRepositories(basePackages = {
-        "rt.sagas.reservation.repositories",
-        "rt.sagas.events.repositories"
+        "rt.sagas.reservation.repositories"
 })
 @EnableJms
-@EnableScheduling
 public class Application {
 
     public static void main(String[] args) {

@@ -33,7 +33,3 @@ spring:
 #      maximum-redeliveries: 100
 #      redelivery-delay: 1000
 #      initial-redelivery-delay: 5000
-
-application:
-  event-loop-scheduler:
-    fixed-delay-ms: 2000

@@ -6,7 +6,7 @@
 
     <groupId>rt.sagas</groupId>
     <artifactId>sagas-parent</artifactId>
-    <version>2.0-RLBK-EV-LOOP</version>
+    <version>3.0-RLBK-NSTR-SEQEV</version>
     <packaging>pom</packaging>
     <modules>
         <module>events-api</module>
@@ -49,12 +49,12 @@
             <dependency>
                 <groupId>rt.sagas</groupId>
                 <artifactId>events-api</artifactId>
-                <version>2.0-RLBK-EV-LOOP</version>
+                <version>3.0-RLBK-NSTR-SEQEV</version>
             </dependency>
             <dependency>
                 <groupId>rt.sagas</groupId>
                 <artifactId>events-api-impl</artifactId>
-                <version>2.0-RLBK-EV-LOOP</version>
+                <version>3.0-RLBK-NSTR-SEQEV</version>
             </dependency>
 
             <dependency>
@@ -110,7 +110,7 @@
             <dependency>
                 <groupId>rt.sagas</groupId>
                 <artifactId>test-utils</artifactId>
-                <version>2.0-RLBK-EV-LOOP</version>
+                <version>3.0-RLBK-NSTR-SEQEV</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>

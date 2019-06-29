@@ -70,29 +70,6 @@ public class ReservationEventsListenerTest {
     }
 
     @Test
-    public void testTransactionIsCreatedAndCartAuthorizedEventIsSentOnceOnReservationCreatedEventSentTwice() throws Exception {
-        ReservationCreatedEvent reservationCreatedEvent = new ReservationCreatedEvent(
-                RESERVATION_ID, ORDER_ID, USER_ID, CART_NUMBER);
-
-        jmsSender.send(RESERVATION_CREATED_EVENT_QUEUE, reservationCreatedEvent);
-        jmsSender.send(RESERVATION_CREATED_EVENT_QUEUE, reservationCreatedEvent);
-
-        assertThat(cartAuthorizedEventReceiver.pollEvent(
-                e -> e.getOrderId().equals(ORDER_ID) &&
-                    e.getReservationId().equals(RESERVATION_ID),10000L),
-                is(notNullValue()));
-        assertThat(cartAuthorizedEventReceiver.pollEvent(
-                e -> e.getOrderId().equals(ORDER_ID) &&
-                    e.getReservationId().equals(RESERVATION_ID),10000L),
-                is(nullValue()));
-
-        Transaction transaction = waitAndGetTransactionByOrderIdFromDb(ORDER_ID, 5000L);
-        assertThat(transaction, is(notNullValue()));
-        transactionRepository.delete(transaction);
-        assertThat(waitAndGetTransactionByOrderIdFromDb(ORDER_ID, 5000L), is(nullValue()));
-    }
-
-    @Test
     public void testTransactionIsRejectedAndCartRejectedEventIsSentWhenCartNumberEndsWithSomeBadNumbers() throws Exception {
         int i = 0;
         for (String bd : Arrays.asList("1", "7", "9")) {

@@ -44,7 +44,7 @@ services:
       retries: 10
 
   order-service:
-    image: saga-tests-rlbk-1/order-service:2.0-RLBK-EV-LOOP
+    image: saga-tests-rlbk-1/order-service:3.0-RLBK-NSTR-SEQEV
     container_name: order-service
     depends_on:
       mariadb-service:
@@ -72,7 +72,7 @@ services:
       retries: 20
 
   reservation-service:
-    image: saga-tests-rlbk-1/reservation-service:2.0-RLBK-EV-LOOP
+    image: saga-tests-rlbk-1/reservation-service:3.0-RLBK-NSTR-SEQEV
     container_name: reservation-service
     depends_on:
       mariadb-service:
@@ -100,7 +100,7 @@ services:
       retries: 20
 
   cart-service:
-    image: saga-tests-rlbk-1/cart-service:2.0-RLBK-EV-LOOP
+    image: saga-tests-rlbk-1/cart-service:3.0-RLBK-NSTR-SEQEV
     container_name: cart-service
     depends_on:
       mariadb-service:

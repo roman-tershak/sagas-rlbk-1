@@ -31,42 +31,32 @@ public class ReservationEventsListener {
     @Transactional
     @JmsListener(destination = RESERVATION_CONFIRMED_EVENT_QUEUE)
     public void receiveReservationConfirmedMessage(@Payload TextMessage textMessage) throws Exception {
-        try {
-            ReservationConfirmedEvent reservationConfirmedEvent = objectMapper.readValue(
-                    textMessage.getText(), ReservationConfirmedEvent.class);
 
-            LOGGER.info("Reservation Confirmed Event received: {}", reservationConfirmedEvent);
+        ReservationConfirmedEvent reservationConfirmedEvent = objectMapper.readValue(
+                textMessage.getText(), ReservationConfirmedEvent.class);
+        LOGGER.info("Reservation Confirmed Event received: {}", reservationConfirmedEvent);
 
-            orderService.completeOrder(
-                    reservationConfirmedEvent.getReservationId(),
-                    reservationConfirmedEvent.getOrderId(),
-                    OrderStatus.COMPLETE);
+        orderService.completeOrder(
+                reservationConfirmedEvent.getReservationId(),
+                reservationConfirmedEvent.getOrderId(),
+                OrderStatus.COMPLETE);
 
-            LOGGER.info("About to complete Reservation Confirmed Event handling: {}", reservationConfirmedEvent);
-        } catch (Exception e) {
-            LOGGER.error("An exception occurred in Reservation Confirmed Event handling: {}, {}", textMessage, e);
-            throw e;
-        }
+        LOGGER.info("About to complete Reservation Confirmed Event handling: {}", reservationConfirmedEvent);
     }
 
     @Transactional
     @JmsListener(destination = RESERVATION_CANCELLED_EVENT_QUEUE)
     public void receiveReservationCancelledMessage(@Payload TextMessage textMessage) throws Exception {
-        try {
-            ReservationCancelledEvent reservationCancelledEvent = objectMapper.readValue(
-                    textMessage.getText(), ReservationCancelledEvent.class);
 
-            LOGGER.info("Reservation Cancelled Event received: {}", reservationCancelledEvent);
+        ReservationCancelledEvent reservationCancelledEvent = objectMapper.readValue(
+                textMessage.getText(), ReservationCancelledEvent.class);
+        LOGGER.info("Reservation Cancelled Event received: {}", reservationCancelledEvent);
 
-            orderService.completeOrder(
-                    reservationCancelledEvent.getReservationId(),
-                    reservationCancelledEvent.getOrderId(),
-                    OrderStatus.FAILED);
+        orderService.completeOrder(
+                reservationCancelledEvent.getReservationId(),
+                reservationCancelledEvent.getOrderId(),
+                OrderStatus.FAILED);
 
-            LOGGER.info("About to complete Reservation Cancelled Event handling: {}", reservationCancelledEvent);
-        } catch (Exception e) {
-            LOGGER.error("An exception occurred in Reservation Cancelled Event handling: {}, {}", textMessage, e);
-            throw e;
-        }
+        LOGGER.info("About to complete Reservation Cancelled Event handling: {}", reservationCancelledEvent);
     }
 }

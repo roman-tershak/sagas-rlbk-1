@@ -65,14 +65,7 @@ public class OrderControllerTest extends AbstractOrderTest {
                 .content(convertToJson(new Order(-1L, "1234567890123456"))))
                 .andExpect(status().is(HttpStatus.BAD_REQUEST.value()))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
-                .andExpect(jsonPath("$.message", equalTo("userId must be positive")));
-
-        mvc.perform(post("/orders")
-                .contentType(MediaType.APPLICATION_JSON_UTF8)
-                .content(convertToJson(new Order(0L, "1234567890123456"))))
-                .andExpect(status().is(HttpStatus.BAD_REQUEST.value()))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
-                .andExpect(jsonPath("$.message", equalTo("userId must be positive")));
+                .andExpect(jsonPath("$.message", equalTo("userId must be not negative")));
     }
 
     @Test

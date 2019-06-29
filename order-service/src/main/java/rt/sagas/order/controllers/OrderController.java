@@ -6,11 +6,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import rt.sagas.events.OrderCreatedEvent;
+import rt.sagas.events.services.EventSender;
 import rt.sagas.order.entities.Order;
 import rt.sagas.order.services.OrderService;
 
 import javax.transaction.Transactional;
 import javax.validation.Valid;
+
+import static rt.sagas.events.QueueNames.ORDER_CREATED_EVENT_QUEUE;
 
 @RestController("/orders")
 public class OrderController {
@@ -19,6 +23,8 @@ public class OrderController {
 
     @Autowired
     private OrderService orderService;
+    @Autowired
+    private EventSender eventSender;
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
@@ -29,6 +35,11 @@ public class OrderController {
         LOGGER.info("Create Order called: {}", order);
 
         Order orderCreated = orderService.createOrder(order);
+
+        eventSender.sendEvent(
+                ORDER_CREATED_EVENT_QUEUE,
+                new OrderCreatedEvent(
+                        orderCreated.getId(), orderCreated.getUserId(), orderCreated.getCartNumber()));
 
         return orderCreated;
     }

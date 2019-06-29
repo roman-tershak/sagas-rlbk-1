@@ -7,12 +7,12 @@
     <parent>
         <artifactId>sagas-parent</artifactId>
         <groupId>rt.sagas</groupId>
-        <version>2.0-RLBK-EV-LOOP</version>
+        <version>3.0-RLBK-NSTR-SEQEV</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>order-service</artifactId>
-    <version>2.0-RLBK-EV-LOOP</version>
+    <version>3.0-RLBK-NSTR-SEQEV</version>
     <packaging>jar</packaging>
 
     <dependencies>
