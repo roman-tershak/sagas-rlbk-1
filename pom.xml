@@ -34,7 +34,7 @@
         <mysql.connector.version>5.1.6</mysql.connector.version>
 
         <jackson.version>2.9.8</jackson.version>
-        <log4j.version>2.11.2</log4j.version>
+        <log4j.version>2.16.0</log4j.version>
 
         <h2.version>1.4.198</h2.version>
 
